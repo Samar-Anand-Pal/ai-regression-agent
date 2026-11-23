@@ -1,0 +1,174 @@
+// Shelfwise: a small library-lending service used as the demo target for
+// ai-regression-agent. It is fictional and exists only for this project.
+syntax = "proto3";
+
+package shelfwise.v1;
+
+// ------------------------------------------------------------------ enums
+
+enum MemberStatus {
+  MEMBER_STATUS_UNSPECIFIED = 0;
+  MEMBER_STATUS_ACTIVE = 1;
+  MEMBER_STATUS_SUSPENDED = 2;
+}
+
+enum LoanStatus {
+  LOAN_STATUS_UNSPECIFIED = 0;
+  LOAN_STATUS_ACTIVE = 1;
+  LOAN_STATUS_RETURNED = 2;
+}
+
+enum HoldStatus {
+  HOLD_STATUS_UNSPECIFIED = 0;
+  HOLD_STATUS_WAITING = 1;
+  HOLD_STATUS_READY = 2;
+  HOLD_STATUS_CANCELLED = 3;
+  HOLD_STATUS_FULFILLED = 4;
+}
+
+// ------------------------------------------------------------------ catalog
+
+message Book {
+  string book_id = 1;
+  string title = 2;
+  string author = 3;
+  string isbn = 4;
+  int32 total_copies = 5;
+  int32 available_copies = 6;
+}
+
+message CreateBookRequest {
+  string title = 1;
+  string author = 2;
+  string isbn = 3;
+  int32 total_copies = 4;
+}
+message GetBookRequest { string book_id = 1; }
+message ListBooksRequest { string author = 1; }
+message ListBooksResponse { repeated Book books = 1; }
+message UpdateBookCopiesRequest {
+  string book_id = 1;
+  int32 total_copies = 2;
+}
+message DeleteBookRequest { string book_id = 1; }
+message DeleteBookResponse { bool deleted = 1; }
+
+service CatalogService {
+  rpc CreateBook(CreateBookRequest) returns (Book);
+  rpc GetBook(GetBookRequest) returns (Book);
+  rpc ListBooks(ListBooksRequest) returns (ListBooksResponse);
+  rpc UpdateBookCopies(UpdateBookCopiesRequest) returns (Book);
+  rpc DeleteBook(DeleteBookRequest) returns (DeleteBookResponse);
+}
+
+// ------------------------------------------------------------------ members
+
+message Member {
+  string member_id = 1;
+  string name = 2;
+  string email = 3;
+  MemberStatus status = 4;
+}
+
+message RegisterMemberRequest {
+  string name = 1;
+  string email = 2;
+}
+message GetMemberRequest { string member_id = 1; }
+message SuspendMemberRequest {
+  string member_id = 1;
+  string reason = 2;
+}
+message ReinstateMemberRequest { string member_id = 1; }
+
+service MemberService {
+  rpc RegisterMember(RegisterMemberRequest) returns (Member);
+  rpc GetMember(GetMemberRequest) returns (Member);
+  rpc SuspendMember(SuspendMemberRequest) returns (Member);
+  rpc ReinstateMember(ReinstateMemberRequest) returns (Member);
+}
+
+// ------------------------------------------------------------------ lending
+
+message Loan {
+  string loan_id = 1;
+  string book_id = 2;
+  string member_id = 3;
+  LoanStatus status = 4;
+  int32 due_day = 5;        // service day on which the loan is due
+  int32 renewals = 6;
+  int32 fine_cents = 7;     // fine charged when the loan was returned late
+}
+
+message CheckoutBookRequest {
+  string book_id = 1;
+  string member_id = 2;
+}
+message ReturnBookRequest { string loan_id = 1; }
+message RenewLoanRequest { string loan_id = 1; }
+message GetLoanRequest { string loan_id = 1; }
+message ListMemberLoansRequest { string member_id = 1; }
+message ListMemberLoansResponse { repeated Loan loans = 1; }
+
+service LendingService {
+  rpc CheckoutBook(CheckoutBookRequest) returns (Loan);
+  rpc ReturnBook(ReturnBookRequest) returns (Loan);
+  rpc RenewLoan(RenewLoanRequest) returns (Loan);
+  rpc GetLoan(GetLoanRequest) returns (Loan);
+  rpc ListMemberLoans(ListMemberLoansRequest) returns (ListMemberLoansResponse);
+}
+
+// ------------------------------------------------------------------ holds
+
+message Hold {
+  string hold_id = 1;
+  string book_id = 2;
+  string member_id = 3;
+  HoldStatus status = 4;
+  int32 position = 5;       // 1 = next in line
+}
+
+message PlaceHoldRequest {
+  string book_id = 1;
+  string member_id = 2;
+}
+message CancelHoldRequest { string hold_id = 1; }
+message ListHoldsRequest { string book_id = 1; }
+message ListHoldsResponse { repeated Hold holds = 1; }
+
+service HoldService {
+  rpc PlaceHold(PlaceHoldRequest) returns (Hold);
+  rpc CancelHold(CancelHoldRequest) returns (Hold);
+  rpc ListHolds(ListHoldsRequest) returns (ListHoldsResponse);
+}
+
+// ------------------------------------------------------------------ fines
+
+message Account {
+  string member_id = 1;
+  int32 balance_cents = 2;  // unpaid fines
+}
+message GetAccountRequest { string member_id = 1; }
+message PayFineRequest {
+  string member_id = 1;
+  int32 amount_cents = 2;
+}
+
+service BillingService {
+  rpc GetAccount(GetAccountRequest) returns (Account);
+  rpc PayFine(PayFineRequest) returns (Account);
+}
+
+// ------------------------------------------------------------------ test support
+
+message AdvanceClockRequest { int32 days = 1; }
+message ClockResponse { int32 today = 1; }
+message ResetRequest {}
+message ResetResponse { bool ok = 1; }
+
+// Only enabled in test environments. Lets tests move the service clock forward
+// (to make loans overdue) and wipe all data between scenarios.
+service TestSupportService {
+  rpc AdvanceClock(AdvanceClockRequest) returns (ClockResponse);
+  rpc Reset(ResetRequest) returns (ResetResponse);
+}

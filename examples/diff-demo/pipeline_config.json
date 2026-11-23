@@ -1,0 +1,13 @@
+{
+  "platform_name": "Shelfwise (diff-runner demo)",
+  "docs_path": "workspace/docs",
+  "proto_path": "workspace/shelfwise.proto",
+  "client_path": "../../sample_service/client.py",
+  "output_dir": "workspace/output",
+  "llm": {"provider": "auto", "model": "claude-opus-5-5", "effort": "high"},
+  "target": {
+    "launcher": "sample_service.server:start_server",
+    "launcher_args": {"fixed": false},
+    "reset_rpc": "TestSupportService.Reset"
+  }
+}

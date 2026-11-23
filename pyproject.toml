@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-regression-agent"
+version = "0.1.0"
+description = "Generate traceable end-to-end regression tests from product docs, with human review gates and doc-diff updates (LangGraph + Claude)."
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10"
+dependencies = [
+    "langgraph>=1.2,<2",
+    "langgraph-checkpoint-sqlite>=3.1,<4",
+    "anthropic>=2.12,<3",
+    "grpcio>=1.70",
+    "grpcio-tools>=1.70",
+    "protobuf>=5.29",
+    "pytest>=8",
+]
+
+[project.optional-dependencies]
+dev = ["pyflakes>=3"]
+
+[project.scripts]
+rga = "regression_agent.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src", "."]
+include = ["regression_agent*", "sample_service*"]
+
+[tool.setuptools.package-data]
+sample_service = ["protos/*.proto", "docs/*.md", "docs_v2/*.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "."]
